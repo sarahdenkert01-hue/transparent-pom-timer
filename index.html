@@ -30,7 +30,7 @@
     background: radial-gradient(circle at center, #fff9c4 40%, #c8e6c9 100%);
     box-shadow: 0 0 30px #fff9c4;
     margin: 0 auto;
-    transition: width 0.2s ease, height 0.2s ease, box-shadow 0.2s ease;
+    transition: width 0.2s, height 0.2s, box-shadow 0.2s;
     position: relative;
     overflow: hidden;
   }
@@ -43,7 +43,7 @@
     height: 160px;
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(255, 249, 196, 0.3) 0%, rgba(255,249,196,0) 70%);
+    background: radial-gradient(circle, rgba(255, 249, 196, 0.3), rgba(255,249,196,0) 70%);
     opacity: 0.6;
     filter: blur(30px);
     pointer-events: none;
@@ -58,10 +58,16 @@
     pointer-events: none;
   }
 
+  /* 🌟 Glowing Timer Text */
   .time-label {
-    margin-top: 12px;
-    font-size: 1rem;
+    margin-top: 16px;
+    font-size: 1.25rem;
     color: #ffffff;
+    text-shadow:
+      0 0 8px rgba(255,255,255,0.8),
+      0 0 12px rgba(255,255,255,0.6),
+      0 0 18px rgba(255,255,200,0.4);
+    transition: text-shadow 0.3s ease;
   }
 
   .controls {
@@ -69,7 +75,6 @@
     display: flex;
     justify-content: center;
     gap: 10px;
-    background: transparent;
   }
 
   button {
@@ -112,7 +117,7 @@ let focusDuration = 25 * 60;
 let breakDuration = 5 * 60;
 let mode = "focus";
 let startTime = null;
-let totalTime = focusDuration;  // ✅ FIXED: initialized
+let totalTime = focusDuration;
 let animationFrame;
 
 const orb = document.getElementById("orb");
@@ -123,7 +128,6 @@ const endSound = document.getElementById("endSound");
 const sparkles = [];
 const NUM_SPARKLES = 15;
 
-// Create sparkles
 for (let i = 0; i < NUM_SPARKLES; i++) {
   const s = document.createElement("div");
   s.className = "sparkle";
@@ -133,7 +137,7 @@ for (let i = 0; i < NUM_SPARKLES; i++) {
     x: Math.random(),
     y: Math.random(),
     dx: (Math.random() - 0.5) * 0.002,
-    dy: (Math.random() - 0.5) * 0.002,
+    dy: (Math.random() - 0.5) * 0.002
   });
 }
 
@@ -166,7 +170,6 @@ function resetTimer() {
   updateGlow(0, 1);
 }
 
-// Ensure initialization happens AFTER DOM is ready
 window.onload = () => {
   updateDisplay(totalTime);
   updateOrb(0, 1);
@@ -179,26 +182,4 @@ function animate() {
 
   updateDisplay(remaining);
 
-  let progress = elapsed / totalTime;
-  if (progress > 1) progress = 1;
-
-  const pulse = 1 + 0.05 * Math.sin(Date.now() / 400);
-  const glowPulse = 1 + 0.1 * Math.sin(Date.now() / 600);
-
-  updateOrb(progress, pulse);
-  updateGlow(progress, glowPulse);
-  updateSparkles();
-
-  if (remaining > 0) {
-    animationFrame = requestAnimationFrame(animate);
-  } else {
-    endSound.currentTime = 0;
-    endSound.play();
-
-    mode === "focus" ? startBreak() : startFocus();
-  }
-}
-
-function updateDisplay(remaining) {
-  const mins = Math.floor(remaining / 60);
-  con
+  let progres
