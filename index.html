@@ -1,185 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Breathing Soft Glow Orb Pomodoro</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Minimal Focus Timer</title>
 
 <style>
   body {
-    background: transparent !important;
     margin: 0;
     height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: "Inter", sans-serif;
+    background: transparent !important;
+    font-family: "Inter", system-ui, sans-serif;
   }
 
-  .container {
+  .timer-container {
     text-align: center;
     background: transparent !important;
   }
 
-  .orb-container { position: relative; }
-
-  .orb {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: radial-gradient(circle at center, #fff9c4 40%, #c8e6c9 100%);
-    box-shadow: 0 0 30px #fff9c4;
-    margin: 0 auto;
-    transition: width 0.2s, height 0.2s, box-shadow 0.2s;
-    position: relative;
-    overflow: hidden;
+  /* TIMER TEXT */
+  #time {
+    font-size: 72px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
   }
 
-  .orb-glow {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(255, 249, 196, 0.3), rgba(255,249,196,0) 70%);
-    opacity: 0.6;
-    filter: blur(30px);
-    pointer-events: none;
+  /* FOCUS LABEL */
+  .label {
+    font-size: 20px;
+    letter-spacing: 0.2em;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 20px;
   }
 
-  .sparkle {
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.7);
-    pointer-events: none;
-  }
-
-  /* 🌟 Glowing Timer Text */
-  .time-label {
-    margin-top: 16px;
-    font-size: 1.25rem;
-    color: #ffffff;
-    text-shadow:
-      0 0 8px rgba(255,255,255,0.8),
-      0 0 12px rgba(255,255,255,0.6),
-      0 0 18px rgba(255,255,200,0.4);
-    transition: text-shadow 0.3s ease;
-  }
-
-  .controls {
-    margin-top: 20px;
+  /* BUTTONS */
+  .btn-row {
     display: flex;
     justify-content: center;
-    gap: 10px;
+    gap: 18px;
   }
 
   button {
-    background: #222;
-    color: white;
-    border: none;
-    border-radius: 50px;
-    padding: 6px 12px;
+    padding: 12px 28px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 40px;
     cursor: pointer;
-    font-size: 0.85rem;
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+    transition: 0.2s ease;
   }
 
-  button:hover { background: #444; }
+  button:hover {
+    background: rgba(255,255,255,0.15);
+  }
+
+  button:active {
+    background: rgba(255,255,255,0.25);
+  }
+
 </style>
 </head>
-
 <body>
-<div class="container">
-  <div class="orb-container">
-    <div class="orb" id="orb">
-      <div class="orb-glow" id="orbGlow"></div>
-    </div>
-  </div>
 
-  <div class="time-label" id="timeLabel">Focus • 25:00</div>
+<div class="timer-container">
+  <div id="time">25:00</div>
+  <div class="label">FOCUS</div>
 
-  <div class="controls">
-    <button onclick="startFocus()">Focus</button>
-    <button onclick="startBreak()">Break</button>
-    <button onclick="resetTimer()">Reset</button>
+  <div class="btn-row">
+    <button id="pauseBtn">PAUSE</button>
+    <button id="resetBtn">RESET</button>
   </div>
 </div>
 
-<audio id="endSound">
-  <source src="https://freesound.org/data/previews/341/341695_3248244-lq.mp3" type="audio/mpeg">
-</audio>
-
 <script>
-let focusDuration = 25 * 60;
-let breakDuration = 5 * 60;
-let mode = "focus";
-let startTime = null;
-let totalTime = focusDuration;
-let animationFrame;
+  let totalSeconds = 25 * 60;
+  let remaining = totalSeconds;
+  let interval = null;
+  let running = true; // start immediately
 
-const orb = document.getElementById("orb");
-const orbGlow = document.getElementById("orbGlow");
-const timeLabel = document.getElementById("timeLabel");
-const endSound = document.getElementById("endSound");
+  const timeEl = document.getElementById("time");
+  const pauseBtn = document.getElementById("pauseBtn");
+  const resetBtn = document.getElementById("resetBtn");
 
-const sparkles = [];
-const NUM_SPARKLES = 15;
+  function format(sec) {
+    const m = String(Math.floor(sec / 60)).padStart(2, "0");
+    const s = String(sec % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  }
 
-for (let i = 0; i < NUM_SPARKLES; i++) {
-  const s = document.createElement("div");
-  s.className = "sparkle";
-  orb.appendChild(s);
-  sparkles.push({
-    el: s,
-    x: Math.random(),
-    y: Math.random(),
-    dx: (Math.random() - 0.5) * 0.002,
-    dy: (Math.random() - 0.5) * 0.002
+  function update() {
+    timeEl.textContent = format(remaining);
+  }
+
+  function tick() {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(interval);
+      remaining = 0;
+    }
+    update();
+  }
+
+  function startTimer() {
+    interval = setInterval(tick, 1000);
+  }
+
+  pauseBtn.addEventListener("click", () => {
+    if (running) {
+      clearInterval(interval);
+      pauseBtn.textContent = "START";
+    } else {
+      startTimer();
+      pauseBtn.textContent = "PAUSE";
+    }
+    running = !running;
   });
-}
 
-const focusColors = { start: [255, 249, 196], end: [200, 230, 201] };
-const breakColors = { start: [200, 230, 201], end: [170, 200, 210] };
+  resetBtn.addEventListener("click", () => {
+    clearInterval(interval);
+    remaining = totalSeconds;
+    update();
+    pauseBtn.textContent = "START";
+    running = false;
+  });
 
-function startFocus() {
-  cancelAnimationFrame(animationFrame);
-  mode = "focus";
-  totalTime = focusDuration;
-  startTime = Date.now();
-  animate();
-}
+  // Initialize
+  update();
+  startTimer();
+</script>
 
-function startBreak() {
-  cancelAnimationFrame(animationFrame);
-  mode = "break";
-  totalTime = breakDuration;
-  startTime = Date.now();
-  animate();
-}
-
-function resetTimer() {
-  cancelAnimationFrame(animationFrame);
-  mode = "focus";
-  totalTime = focusDuration;
-  startTime = Date.now();
-  updateDisplay(totalTime);
-  updateOrb(0, 1);
-  updateGlow(0, 1);
-}
-
-window.onload = () => {
-  updateDisplay(totalTime);
-  updateOrb(0, 1);
-  updateGlow(0, 1);
-};
-
-function animate() {
-  const elapsed = (Date.now() - startTime) / 1000;
-  const remaining = Math.max(totalTime - elapsed, 0);
-
-  updateDisplay(remaining);
-
-  let progres
+</body>
+</html>
